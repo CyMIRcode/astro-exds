@@ -17,6 +17,32 @@
     grid-template-columns: 1fr;
   }
 
+  .admin-field--memo > input,
+  .admin-field--memo > .admin-title-pair {
+    max-width: none;
+  }
+
+  .admin-inline-builder {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .admin-inline-builder__text,
+  .admin-inline-builder__select {
+    flex: 1 1 100%;
+    width: 100% !important;
+  }
+
+  .admin-inline-builder__bridge {
+    justify-content: flex-start;
+    width: max-content;
+    max-width: 100%;
+  }
+
+  .admin-title-pair__sep {
+    padding: 0 8px;
+  }
+
   .admin-actions {
     align-items: flex-start;
   }

@@ -11,6 +11,7 @@ The format is based on Keep a Changelog, and this project aims to follow Semanti
 - 新增侧栏设置，支持修改站点名、引用文案，以及既有导航项的名称、排序和显示状态
 - 新增社交链接设置，支持维护 GitHub、X、Email 和最多 8 条自定义链接；关于页会同步显示
 - 新增显示开关，支持控制阅读模式入口和代码行号
+- 新增首页导语主文案 / 补充文案的独立展示开关，可在 `/admin/` 中分别控制首页是否渲染两段导语
 - 新增本地配置保存机制；首次保存时生成本地配置文件，未生成前仍兼容旧配置读取
 
 ### Changed
@@ -19,11 +20,13 @@ The format is based on Keep a Changelog, and this project aims to follow Semanti
 - `/admin/` 客户端控制器从页面内联脚本迁到 `src/scripts/admin-console/index.ts`，并抽出 `src/lib/admin-console/shared.ts` 统一收口共享规则与默认值
 - `/admin/` 表单分组已拆到 `src/components/admin/`，社交链接子树也独立为组件，`src/pages/admin/index.astro` 进一步收敛为页面装配层
 - `/admin/` 样式层已拆为 `admin-form` / `admin-social` / `admin-nav` / `admin-responsive` 四段，`src/styles/components/admin.css` 退化为聚合入口
+- 首页现在按 `home.showIntroLead` / `home.showIntroMore` 配置决定是否渲染两段导语；补充导语支持在 `/admin/` 选择 `1-2` 个首页内部入口，前台继续按固定句式渲染，并对旧配置回退到 `归档 / 随笔`
 - 生产环境中的 `/admin/` 保持只读，并从 sitemap 中排除
 - `GET /api/admin/settings/` 改为开发态返回完整编辑载荷、生产态只返回安全只读响应，不再公开输出完整 Theme Console 配置
 - Theme Console 的读写载荷边界统一为“可直接回写”的编辑模型，移除 `resolvedSocialItems` 等运行时派生字段
 - Theme Console 多文件保存流程升级为 staged temp + commit/rollback，避免跨文件半成功状态
 - 优化 `/admin/` Theme Console 的表单布局、提示文案与排序控件样式，提升本地配置台的一致性
+- `/admin/` 的内页设置新增路径优先的“主标题 | 副标题”组合控件；`/essay/`、`/archive/`、`/bits/`、`/memo/`、`/about/` 可分别配置页面主副标题，`/memo/` 未填写时继续回退到 frontmatter
 
 ### Fixed
 - 修复 `/admin/` 首次加载可能提示接口读取失败的问题

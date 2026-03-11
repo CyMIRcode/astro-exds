@@ -1,4 +1,5 @@
 ---
+import { getEntry } from 'astro:content';
 import AdminHomeSection from '../../components/admin/AdminHomeSection.astro';
 import AdminPageSection from '../../components/admin/AdminPageSection.astro';
 import AdminSidebarSection from '../../components/admin/AdminSidebarSection.astro';
@@ -10,6 +11,7 @@ import {
   ADMIN_FOOTER_START_YEAR_MIN,
   ADMIN_HOME_INTRO_MAX_LENGTH,
   ADMIN_NAV_IDS,
+  ADMIN_PAGE_TITLE_MAX_LENGTH,
   ADMIN_PAGE_SUBTITLE_MAX_LENGTH,
   ADMIN_SOCIAL_CUSTOM_LIMIT,
   getAdminFooterStartYearMax
@@ -30,10 +32,15 @@ const navLabelFallback: Record<SidebarNavId, string> = {
   about: '关于'
 };
 const homeIntroMaxLength = ADMIN_HOME_INTRO_MAX_LENGTH;
+const pageTitleMaxLength = ADMIN_PAGE_TITLE_MAX_LENGTH;
 const pageSubtitleMaxLength = ADMIN_PAGE_SUBTITLE_MAX_LENGTH;
 const footerStartYearMin = ADMIN_FOOTER_START_YEAR_MIN;
 const footerStartYearMax = getAdminFooterStartYearMax();
 const socialCustomLimit = ADMIN_SOCIAL_CUSTOM_LIMIT;
+const memoEntry = await getEntry('memo', 'index');
+const memoTitlePlaceholder = typeof memoEntry?.data.title === 'string' ? memoEntry.data.title.trim() : '';
+const memoSubtitlePlaceholder =
+  typeof memoEntry?.data.subtitle === 'string' ? memoEntry.data.subtitle.trim() : '';
 
 const initialPayload = getEditableThemeSettingsPayload();
 const initialNavMap = new Map(
@@ -92,7 +99,12 @@ const bootstrapJson = JSON.stringify(initialPayloadWithFallbackNav).replace(/</g
 
           <AdminHomeSection homeIntroMaxLength={homeIntroMaxLength} />
 
-          <AdminPageSection pageSubtitleMaxLength={pageSubtitleMaxLength} />
+          <AdminPageSection
+            pageTitleMaxLength={pageTitleMaxLength}
+            pageSubtitleMaxLength={pageSubtitleMaxLength}
+            memoTitlePlaceholder={memoTitlePlaceholder}
+            memoSubtitlePlaceholder={memoSubtitlePlaceholder}
+          />
 
           <AdminUiSection />
         </form>

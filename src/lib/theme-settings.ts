@@ -1,12 +1,18 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { site as legacySite } from '../../site.config.mjs';
+import {
+  ADMIN_HOME_INTRO_LINK_DEFAULT,
+  ADMIN_HOME_INTRO_LINK_KEY_SET,
+  ADMIN_HOME_INTRO_LINK_LIMIT
+} from './admin-console/shared';
 
 export type SettingSource = 'new' | 'legacy' | 'default';
 
 export type SidebarNavId = 'essay' | 'bits' | 'memo' | 'archive' | 'about';
 export type PageId = 'essay' | 'archive' | 'bits' | 'memo' | 'about';
 export type HeroPresetId = 'default' | 'minimal' | 'none';
+export type HomeIntroLinkKey = 'archive' | 'essay' | 'bits' | 'memo' | 'about';
 export type SiteSocialPresetId = 'github' | 'x' | 'email';
 export type SiteSocialKind = 'preset' | 'custom';
 export type SiteSocialIconKey =
@@ -89,28 +95,34 @@ export interface ShellSettings {
 export interface HomeSettings {
   introLead: string;
   introMore: string;
+  introMoreLinks: HomeIntroLinkKey[];
+  showIntroLead: boolean;
+  showIntroMore: boolean;
   heroPresetId: HeroPresetId;
 }
 
-export interface PageSettingsItem {
+export interface PageHeadingSettings {
+  title: string | null;
   subtitle: string | null;
 }
+
+export interface MemoPageSettings extends PageHeadingSettings {}
 
 export interface BitsDefaultAuthorSettings {
   name: string;
   avatar: string;
 }
 
-export interface BitsPageSettings extends PageSettingsItem {
+export interface BitsPageSettings extends PageHeadingSettings {
   defaultAuthor: BitsDefaultAuthorSettings;
 }
 
 export interface PageSettings {
-  essay: PageSettingsItem;
-  archive: PageSettingsItem;
+  essay: PageHeadingSettings;
+  archive: PageHeadingSettings;
   bits: BitsPageSettings;
-  memo: PageSettingsItem;
-  about: PageSettingsItem;
+  memo: MemoPageSettings;
+  about: PageHeadingSettings;
 }
 
 export interface UiSettings {
@@ -154,15 +166,23 @@ export interface ThemeSettingsSources {
   home: {
     introLead: SettingSource;
     introMore: SettingSource;
+    introMoreLinks: SettingSource;
+    showIntroLead: SettingSource;
+    showIntroMore: SettingSource;
     heroPresetId: SettingSource;
   };
   page: {
+    essayTitle: SettingSource;
     essaySubtitle: SettingSource;
+    archiveTitle: SettingSource;
     archiveSubtitle: SettingSource;
+    bitsTitle: SettingSource;
     bitsSubtitle: SettingSource;
     bitsDefaultAuthorName: SettingSource;
     bitsDefaultAuthorAvatar: SettingSource;
+    memoTitle: SettingSource;
     memoSubtitle: SettingSource;
+    aboutTitle: SettingSource;
     aboutSubtitle: SettingSource;
   };
   ui: {
@@ -202,8 +222,12 @@ const SETTINGS_DIR = join(process.cwd(), 'src', 'data', 'settings');
 const LEGACY_INTRO_LEAD =
   '这是一个开源写作主题与示例内容库:包含 随笔/essay、小记/memo、归档/archive 与 絮语/bits，使用与配置请见 README 。';
 const LEGACY_INTRO_MORE = '更多文章请访问';
+const LEGACY_ESSAY_TITLE = '随笔';
+const LEGACY_ARCHIVE_TITLE = '归档';
 const LEGACY_ESSAY_SUBTITLE = '随笔与杂记';
+const LEGACY_BITS_TITLE = '絮语';
 const LEGACY_BITS_SUBTITLE = '生活不只是长篇';
+const LEGACY_ABOUT_TITLE = '关于';
 const LEGACY_QUOTE = 'A minimal Astro theme\nfor essays, notes, and docs.\nDesigned for reading,\nopen-source.';
 const LEGACY_FOOTER_START_YEAR = 2025;
 const LEGACY_FOOTER_SHOW_CURRENT_YEAR = true;
@@ -242,6 +266,8 @@ const clonePresetSocialOrder = (value: Readonly<SiteSocialPresetOrder>): SiteSoc
 const cloneResolvedSocialItems = (items: readonly ResolvedSocialItem[]): ResolvedSocialItem[] =>
   items.map((item) => ({ ...item }));
 
+const cloneHomeIntroLinks = (items: readonly HomeIntroLinkKey[]): HomeIntroLinkKey[] => [...items];
+
 const cloneThemeSettingsSources = (sources: ThemeSettingsSources): ThemeSettingsSources => ({
   site: { ...sources.site },
   shell: { ...sources.shell },
@@ -278,17 +304,23 @@ const DEFAULT_SHELL: ShellSettings = {
 const DEFAULT_HOME: HomeSettings = {
   introLead: LEGACY_INTRO_LEAD,
   introMore: LEGACY_INTRO_MORE,
+  introMoreLinks: cloneHomeIntroLinks(ADMIN_HOME_INTRO_LINK_DEFAULT),
+  showIntroLead: true,
+  showIntroMore: true,
   heroPresetId: 'default'
 };
 
 const DEFAULT_PAGE: PageSettings = {
   essay: {
+    title: LEGACY_ESSAY_TITLE,
     subtitle: LEGACY_ESSAY_SUBTITLE
   },
   archive: {
+    title: LEGACY_ARCHIVE_TITLE,
     subtitle: '按年份分组的归档目录'
   },
   bits: {
+    title: LEGACY_BITS_TITLE,
     subtitle: LEGACY_BITS_SUBTITLE,
     defaultAuthor: {
       name: 'Whono',
@@ -296,9 +328,11 @@ const DEFAULT_PAGE: PageSettings = {
     }
   },
   memo: {
+    title: null,
     subtitle: null
   },
   about: {
+    title: LEGACY_ABOUT_TITLE,
     subtitle: null
   }
 };
@@ -432,6 +466,11 @@ const asHeroPresetId = (value: unknown): HeroPresetId | undefined => {
   return HERO_PRESETS.has(value as HeroPresetId) ? (value as HeroPresetId) : undefined;
 };
 
+const asHomeIntroLinkKey = (value: unknown): HomeIntroLinkKey | undefined => {
+  if (typeof value !== 'string') return undefined;
+  return ADMIN_HOME_INTRO_LINK_KEY_SET.has(value as HomeIntroLinkKey) ? (value as HomeIntroLinkKey) : undefined;
+};
+
 const asSocialIconKey = (value: unknown): SiteSocialIconKey | undefined => {
   if (typeof value !== 'string') return undefined;
   return SOCIAL_ICON_KEYS.has(value as SiteSocialIconKey) ? (value as SiteSocialIconKey) : undefined;
@@ -523,6 +562,24 @@ const parseSocialCustomItems = (value: unknown): SiteSocialCustomItem[] | undefi
   }
 
   return normalized;
+};
+
+const parseHomeIntroLinks = (value: unknown): HomeIntroLinkKey[] | undefined => {
+  if (!Array.isArray(value)) return undefined;
+
+  const normalized: HomeIntroLinkKey[] = [];
+  const seen = new Set<HomeIntroLinkKey>();
+
+  for (const item of value) {
+    const linkKey = asHomeIntroLinkKey(item);
+    if (!linkKey || seen.has(linkKey)) continue;
+    normalized.push(linkKey);
+    seen.add(linkKey);
+
+    if (normalized.length >= ADMIN_HOME_INTRO_LINK_LIMIT) break;
+  }
+
+  return normalized.length ? normalized : undefined;
 };
 
 const buildResolvedSocialItems = (
@@ -675,21 +732,51 @@ export const getThemeSettings = (): ThemeSettingsResolved => {
     LEGACY_INTRO_MORE,
     DEFAULT_HOME.introMore
   );
+  const introMoreLinks = resolveValue(
+    parseHomeIntroLinks(homeJson?.introMoreLinks),
+    undefined,
+    cloneHomeIntroLinks(DEFAULT_HOME.introMoreLinks)
+  );
+  const showIntroLead = resolveValue(
+    asBoolean(homeJson?.showIntroLead),
+    undefined,
+    DEFAULT_HOME.showIntroLead
+  );
+  const showIntroMore = resolveValue(
+    asBoolean(homeJson?.showIntroMore),
+    undefined,
+    DEFAULT_HOME.showIntroMore
+  );
   const heroPresetId = resolveValue(
     asHeroPresetId(homeJson?.heroPresetId),
     DEFAULT_HOME.heroPresetId,
     DEFAULT_HOME.heroPresetId
   );
 
+  const essayTitle = resolveValue(
+    asNullableString(pageEssayJson?.title),
+    undefined,
+    DEFAULT_PAGE.essay.title
+  );
   const essaySubtitle = resolveValue(
     asNullableString(pageEssayJson?.subtitle),
     LEGACY_ESSAY_SUBTITLE,
     DEFAULT_PAGE.essay.subtitle
   );
+  const archiveTitle = resolveValue(
+    asNullableString(pageArchiveJson?.title),
+    undefined,
+    DEFAULT_PAGE.archive.title
+  );
   const archiveSubtitle = resolveValue(
     asNullableString(pageArchiveJson?.subtitle),
     undefined,
     DEFAULT_PAGE.archive.subtitle
+  );
+  const bitsTitle = resolveValue(
+    asNullableString(pageBitsJson?.title),
+    undefined,
+    DEFAULT_PAGE.bits.title
   );
   const bitsSubtitle = resolveValue(
     asNullableString(pageBitsJson?.subtitle),
@@ -710,6 +797,16 @@ export const getThemeSettings = (): ThemeSettingsResolved => {
     asNullableString(pageMemoJson?.subtitle),
     undefined,
     DEFAULT_PAGE.memo.subtitle
+  );
+  const memoTitle = resolveValue<string | null>(
+    asNullableString(pageMemoJson?.title),
+    undefined,
+    DEFAULT_PAGE.memo.title
+  );
+  const aboutTitle = resolveValue(
+    asNullableString(pageAboutJson?.title),
+    undefined,
+    DEFAULT_PAGE.about.title
   );
   const aboutSubtitle = resolveValue<string | null>(
     asNullableString(pageAboutJson?.subtitle),
@@ -775,16 +872,22 @@ export const getThemeSettings = (): ThemeSettingsResolved => {
       home: {
         introLead: introLead.value,
         introMore: introMore.value,
+        introMoreLinks: cloneHomeIntroLinks(introMoreLinks.value),
+        showIntroLead: showIntroLead.value,
+        showIntroMore: showIntroMore.value,
         heroPresetId: heroPresetId.value
       },
       page: {
         essay: {
+          title: essayTitle.value,
           subtitle: essaySubtitle.value
         },
         archive: {
+          title: archiveTitle.value,
           subtitle: archiveSubtitle.value
         },
         bits: {
+          title: bitsTitle.value,
           subtitle: bitsSubtitle.value,
           defaultAuthor: {
             name: bitsDefaultAuthorName.value,
@@ -792,9 +895,11 @@ export const getThemeSettings = (): ThemeSettingsResolved => {
           }
         },
         memo: {
+          title: memoTitle.value,
           subtitle: memoSubtitle.value
         },
         about: {
+          title: aboutTitle.value,
           subtitle: aboutSubtitle.value
         }
       },
@@ -831,15 +936,23 @@ export const getThemeSettings = (): ThemeSettingsResolved => {
       home: {
         introLead: introLead.source,
         introMore: introMore.source,
+        introMoreLinks: introMoreLinks.source,
+        showIntroLead: showIntroLead.source,
+        showIntroMore: showIntroMore.source,
         heroPresetId: heroPresetId.source
       },
       page: {
+        essayTitle: essayTitle.source,
         essaySubtitle: essaySubtitle.source,
+        archiveTitle: archiveTitle.source,
         archiveSubtitle: archiveSubtitle.source,
+        bitsTitle: bitsTitle.source,
         bitsSubtitle: bitsSubtitle.source,
         bitsDefaultAuthorName: bitsDefaultAuthorName.source,
         bitsDefaultAuthorAvatar: bitsDefaultAuthorAvatar.source,
+        memoTitle: memoTitle.source,
         memoSubtitle: memoSubtitle.source,
+        aboutTitle: aboutTitle.source,
         aboutSubtitle: aboutSubtitle.source
       },
       ui: {
@@ -878,12 +991,14 @@ export const toEditableThemeSettingsPayload = (
       nav: cloneNavItems(resolved.settings.shell.nav)
     },
     home: {
-      ...resolved.settings.home
+      ...resolved.settings.home,
+      introMoreLinks: cloneHomeIntroLinks(resolved.settings.home.introMoreLinks)
     },
     page: {
       essay: { ...resolved.settings.page.essay },
       archive: { ...resolved.settings.page.archive },
       bits: {
+        title: resolved.settings.page.bits.title,
         subtitle: resolved.settings.page.bits.subtitle,
         defaultAuthor: {
           ...resolved.settings.page.bits.defaultAuthor

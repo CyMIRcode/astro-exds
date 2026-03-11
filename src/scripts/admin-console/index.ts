@@ -1,4 +1,5 @@
 import type {
+  HomeIntroLinkKey,
   SidebarNavId,
   SiteSocialIconKey,
   SiteSocialPresetId,
@@ -10,15 +11,20 @@ import {
   ADMIN_FOOTER_START_YEAR_MIN,
   ADMIN_GITHUB_HOSTS,
   ADMIN_HERO_PRESET_SET,
+  ADMIN_HOME_INTRO_LINK_DEFAULT,
+  ADMIN_HOME_INTRO_LINK_LIMIT,
+  ADMIN_HOME_INTRO_LINK_OPTIONS,
   ADMIN_HOME_INTRO_MAX_LENGTH,
   ADMIN_LOCALE_RE,
   ADMIN_NAV_IDS,
+  ADMIN_PAGE_TITLE_MAX_LENGTH,
   ADMIN_PAGE_SUBTITLE_MAX_LENGTH,
   ADMIN_SOCIAL_CUSTOM_LIMIT,
   ADMIN_SOCIAL_PRESET_IDS,
   ADMIN_SOCIAL_PRESET_ORDER_DEFAULT,
   ADMIN_X_HOSTS,
   getAdminFooterStartYearMax,
+  isAdminHomeIntroLinkKey,
   isAdminAllowedHttpsUrl,
   isAdminHeroPresetId,
   isAdminNavId,
@@ -83,12 +89,23 @@ if (!root) {
     inputSiteSocialEmail: byId<HTMLInputElement>('site-social-email'),
     inputShellBrandTitle: byId<HTMLInputElement>('shell-brand-title'),
     inputShellQuote: byId<HTMLTextAreaElement>('shell-quote'),
+    inputHomeShowIntroLead: byId<HTMLInputElement>('home-show-intro-lead'),
+    inputHomeShowIntroMore: byId<HTMLInputElement>('home-show-intro-more'),
     inputHomeIntroLead: byId<HTMLTextAreaElement>('home-intro-lead'),
     inputHomeIntroMore: byId<HTMLTextAreaElement>('home-intro-more'),
+    homeIntroMorePreviewEl: byId<HTMLElement>('home-intro-more-preview'),
+    inputHomeIntroMoreLinkPrimary: byId<HTMLSelectElement>('home-intro-more-link-primary'),
+    inputHomeIntroMoreLinkSecondaryEnabled: byId<HTMLInputElement>('home-intro-more-link-secondary-enabled'),
+    inputHomeIntroMoreLinkSecondary: byId<HTMLSelectElement>('home-intro-more-link-secondary'),
+    inputPageEssayTitle: byId<HTMLInputElement>('page-essay-title'),
     inputPageEssaySubtitle: byId<HTMLInputElement>('page-essay-subtitle'),
+    inputPageArchiveTitle: byId<HTMLInputElement>('page-archive-title'),
     inputPageArchiveSubtitle: byId<HTMLInputElement>('page-archive-subtitle'),
+    inputPageBitsTitle: byId<HTMLInputElement>('page-bits-title'),
     inputPageBitsSubtitle: byId<HTMLInputElement>('page-bits-subtitle'),
+    inputPageMemoTitle: byId<HTMLInputElement>('page-memo-title'),
     inputPageMemoSubtitle: byId<HTMLInputElement>('page-memo-subtitle'),
+    inputPageAboutTitle: byId<HTMLInputElement>('page-about-title'),
     inputPageAboutSubtitle: byId<HTMLInputElement>('page-about-subtitle'),
     inputPageBitsAuthorName: byId<HTMLInputElement>('page-bits-author-name'),
     inputPageBitsAuthorAvatar: byId<HTMLInputElement>('page-bits-author-avatar'),
@@ -129,12 +146,23 @@ if (!root) {
       inputSiteSocialEmail,
       inputShellBrandTitle,
       inputShellQuote,
+      inputHomeShowIntroLead,
+      inputHomeShowIntroMore,
       inputHomeIntroLead,
       inputHomeIntroMore,
+      homeIntroMorePreviewEl,
+      inputHomeIntroMoreLinkPrimary,
+      inputHomeIntroMoreLinkSecondaryEnabled,
+      inputHomeIntroMoreLinkSecondary,
+      inputPageEssayTitle,
       inputPageEssaySubtitle,
+      inputPageArchiveTitle,
       inputPageArchiveSubtitle,
+      inputPageBitsTitle,
       inputPageBitsSubtitle,
+      inputPageMemoTitle,
       inputPageMemoSubtitle,
+      inputPageAboutTitle,
       inputPageAboutSubtitle,
       inputPageBitsAuthorName,
       inputPageBitsAuthorAvatar,
@@ -189,6 +217,85 @@ if (!root) {
     const normalizeTrimmed = (value: unknown): string => String(value ?? '').trim();
     const normalizeCustomSocialLabel = (iconKey: SiteSocialIconKey): string =>
       customSocialIconLabels.get(iconKey) || customSocialIconLabels.get(defaultCustomSocialIconKey) || '链接';
+    const defaultHomeIntroLinks = [...ADMIN_HOME_INTRO_LINK_DEFAULT] as HomeIntroLinkKey[];
+    const defaultPrimaryHomeIntroLink: HomeIntroLinkKey = ADMIN_HOME_INTRO_LINK_DEFAULT[0];
+    const defaultSecondaryHomeIntroLink: HomeIntroLinkKey = ADMIN_HOME_INTRO_LINK_DEFAULT[1];
+    const getFallbackSecondaryIntroLink = (primary: HomeIntroLinkKey): HomeIntroLinkKey =>
+      defaultHomeIntroLinks.find((link) => link !== primary)
+      || ADMIN_HOME_INTRO_LINK_OPTIONS.find((option) => option.id !== primary)?.id
+      || defaultSecondaryHomeIntroLink
+      || primary;
+    const normalizeHomeIntroLinks = (value: unknown): HomeIntroLinkKey[] => {
+      if (!Array.isArray(value)) return [...defaultHomeIntroLinks];
+
+      const normalized: HomeIntroLinkKey[] = [];
+      const seen = new Set<HomeIntroLinkKey>();
+
+      value.forEach((item) => {
+        const rawValue = normalizeTrimmed(item);
+        if (!rawValue || !isAdminHomeIntroLinkKey(rawValue)) return;
+        const linkKey = rawValue as HomeIntroLinkKey;
+        if (seen.has(linkKey) || normalized.length >= ADMIN_HOME_INTRO_LINK_LIMIT) return;
+        normalized.push(linkKey);
+        seen.add(linkKey);
+      });
+
+      return normalized.length ? normalized : [...defaultHomeIntroLinks];
+    };
+    const getSelectedHomeIntroLink = (selectEl: HTMLSelectElement, fallback: HomeIntroLinkKey): HomeIntroLinkKey => {
+      const rawValue = selectEl.value.trim();
+      return isAdminHomeIntroLinkKey(rawValue) ? rawValue : fallback;
+    };
+    const HOME_INTRO_PREVIEW_EMPTY = '无首页补充导语';
+    const getHomeIntroLinkLabel = (linkKey: HomeIntroLinkKey): string =>
+      ADMIN_HOME_INTRO_LINK_OPTIONS.find((option) => option.id === linkKey)?.label || '链接';
+    const getHomeIntroPreviewText = (): string => {
+      if (!inputHomeShowIntroMore.checked) {
+        return HOME_INTRO_PREVIEW_EMPTY;
+      }
+      const introText = normalizeMultiline(inputHomeIntroMore.value).trim() || '……';
+      const [primary, secondary] = collectHomeIntroLinks();
+      const primaryLabel = getHomeIntroLinkLabel(primary || defaultPrimaryHomeIntroLink);
+      if (!secondary) {
+        return `${introText} ${primaryLabel}。`;
+      }
+      const secondaryLabel = getHomeIntroLinkLabel(secondary);
+      return `${introText} ${primaryLabel} 或 ${secondaryLabel}。`;
+    };
+    const refreshHomeIntroPreview = (): void => {
+      homeIntroMorePreviewEl.textContent = getHomeIntroPreviewText();
+    };
+    const syncHomeIntroLinkControls = (): void => {
+      const primary = getSelectedHomeIntroLink(inputHomeIntroMoreLinkPrimary, defaultPrimaryHomeIntroLink);
+      const hasSecondary = Boolean(inputHomeIntroMoreLinkSecondaryEnabled.checked);
+      inputHomeIntroMoreLinkSecondary.disabled = !hasSecondary;
+
+      if (hasSecondary) {
+        const secondary = getSelectedHomeIntroLink(
+          inputHomeIntroMoreLinkSecondary,
+          getFallbackSecondaryIntroLink(primary)
+        );
+
+        if (secondary === primary) {
+          inputHomeIntroMoreLinkSecondary.value = getFallbackSecondaryIntroLink(primary);
+        }
+      }
+
+      refreshHomeIntroPreview();
+    };
+    const collectHomeIntroLinks = (): HomeIntroLinkKey[] => {
+      const primary = getSelectedHomeIntroLink(inputHomeIntroMoreLinkPrimary, defaultPrimaryHomeIntroLink);
+      if (!inputHomeIntroMoreLinkSecondaryEnabled.checked) {
+        return [primary];
+      }
+
+      const secondary = getSelectedHomeIntroLink(
+        inputHomeIntroMoreLinkSecondary,
+        getFallbackSecondaryIntroLink(primary)
+      );
+
+      return secondary !== primary ? [primary, secondary] : [primary];
+    };
 
     const getPresetOrderInputs = (): Record<SiteSocialPresetId, HTMLInputElement> => ({
       github: inputSiteSocialGithubOrder,
@@ -570,6 +677,11 @@ if (!root) {
 
       const rawHeroPresetId = normalizeTrimmed(home.heroPresetId);
       const rawPresetOrder = isRecord(socialLinks.presetOrder) ? socialLinks.presetOrder : {};
+      const showIntroLead =
+        typeof home.showIntroLead === 'boolean' ? home.showIntroLead : true;
+      const showIntroMore =
+        typeof home.showIntroMore === 'boolean' ? home.showIntroMore : true;
+      const introMoreLinks = normalizeHomeIntroLinks(home.introMoreLinks);
 
       return {
         site: {
@@ -601,16 +713,22 @@ if (!root) {
         home: {
           introLead: normalizeMultiline(String(home.introLead ?? '')).trim(),
           introMore: normalizeMultiline(String(home.introMore ?? '')).trim(),
+          introMoreLinks,
+          showIntroLead,
+          showIntroMore,
           heroPresetId: isAdminHeroPresetId(rawHeroPresetId) ? rawHeroPresetId : 'default'
         },
         page: {
           essay: {
+            title: normalizeOptionalSingleLine(String(isRecord(page.essay) ? page.essay.title ?? '' : '')),
             subtitle: normalizeOptionalSingleLine(String(isRecord(page.essay) ? page.essay.subtitle ?? '' : ''))
           },
           archive: {
+            title: normalizeOptionalSingleLine(String(isRecord(page.archive) ? page.archive.title ?? '' : '')),
             subtitle: normalizeOptionalSingleLine(String(isRecord(page.archive) ? page.archive.subtitle ?? '' : ''))
           },
           bits: {
+            title: normalizeOptionalSingleLine(String(bitsPage.title ?? '')),
             subtitle: normalizeOptionalSingleLine(String(bitsPage.subtitle ?? '')),
             defaultAuthor: {
               name: normalizeTrimmed(bitsDefaultAuthor.name),
@@ -618,9 +736,11 @@ if (!root) {
             }
           },
           memo: {
+            title: normalizeOptionalSingleLine(String(isRecord(page.memo) ? page.memo.title ?? '' : '')),
             subtitle: normalizeOptionalSingleLine(String(isRecord(page.memo) ? page.memo.subtitle ?? '' : ''))
           },
           about: {
+            title: normalizeOptionalSingleLine(String(isRecord(page.about) ? page.about.title ?? '' : '')),
             subtitle: normalizeOptionalSingleLine(String(isRecord(page.about) ? page.about.subtitle ?? '' : ''))
           }
         },
@@ -695,16 +815,22 @@ if (!root) {
         home: {
           introLead: normalizeMultiline(inputHomeIntroLead.value).trim(),
           introMore: normalizeMultiline(inputHomeIntroMore.value).trim(),
+          introMoreLinks: collectHomeIntroLinks(),
+          showIntroLead: Boolean(inputHomeShowIntroLead.checked),
+          showIntroMore: Boolean(inputHomeShowIntroMore.checked),
           heroPresetId: isAdminHeroPresetId(inputHeroPreset.value) ? inputHeroPreset.value : 'default'
         },
         page: {
           essay: {
+            title: normalizeOptionalSingleLine(inputPageEssayTitle.value),
             subtitle: normalizeOptionalSingleLine(inputPageEssaySubtitle.value)
           },
           archive: {
+            title: normalizeOptionalSingleLine(inputPageArchiveTitle.value),
             subtitle: normalizeOptionalSingleLine(inputPageArchiveSubtitle.value)
           },
           bits: {
+            title: normalizeOptionalSingleLine(inputPageBitsTitle.value),
             subtitle: normalizeOptionalSingleLine(inputPageBitsSubtitle.value),
             defaultAuthor: {
               name: inputPageBitsAuthorName.value.trim(),
@@ -712,9 +838,11 @@ if (!root) {
             }
           },
           memo: {
+            title: normalizeOptionalSingleLine(inputPageMemoTitle.value),
             subtitle: normalizeOptionalSingleLine(inputPageMemoSubtitle.value)
           },
           about: {
+            title: normalizeOptionalSingleLine(inputPageAboutTitle.value),
             subtitle: normalizeOptionalSingleLine(inputPageAboutSubtitle.value)
           }
         },
@@ -756,12 +884,27 @@ if (!root) {
       replaceCustomRows(settings.site.socialLinks?.custom || []);
       inputShellBrandTitle.value = settings.shell.brandTitle || '';
       inputShellQuote.value = settings.shell.quote || '';
+      inputHomeShowIntroLead.checked = settings.home.showIntroLead !== false;
+      inputHomeShowIntroMore.checked = settings.home.showIntroMore !== false;
       inputHomeIntroLead.value = settings.home.introLead || '';
       inputHomeIntroMore.value = settings.home.introMore || '';
+      const introMoreLinks = normalizeHomeIntroLinks(settings.home.introMoreLinks);
+      const primaryIntroLink = introMoreLinks[0] || defaultPrimaryHomeIntroLink;
+      inputHomeIntroMoreLinkPrimary.value = primaryIntroLink;
+      inputHomeIntroMoreLinkSecondaryEnabled.checked = introMoreLinks.length > 1;
+      inputHomeIntroMoreLinkSecondary.value =
+        introMoreLinks[1] || getFallbackSecondaryIntroLink(primaryIntroLink);
+      syncHomeIntroLinkControls();
+      refreshHomeIntroPreview();
+      inputPageEssayTitle.value = settings.page.essay?.title || '';
       inputPageEssaySubtitle.value = settings.page.essay?.subtitle || '';
+      inputPageArchiveTitle.value = settings.page.archive?.title || '';
       inputPageArchiveSubtitle.value = settings.page.archive?.subtitle || '';
+      inputPageBitsTitle.value = settings.page.bits?.title || '';
       inputPageBitsSubtitle.value = settings.page.bits?.subtitle || '';
+      inputPageMemoTitle.value = settings.page.memo?.title || '';
       inputPageMemoSubtitle.value = settings.page.memo?.subtitle || '';
+      inputPageAboutTitle.value = settings.page.about?.title || '';
       inputPageAboutSubtitle.value = settings.page.about?.subtitle || '';
       inputPageBitsAuthorName.value = settings.page.bits?.defaultAuthor?.name || '';
       inputPageBitsAuthorAvatar.value = settings.page.bits?.defaultAuthor?.avatar || '';
@@ -906,21 +1049,73 @@ if (!root) {
         errors.push(`首页导语主文案不能超过 ${ADMIN_HOME_INTRO_MAX_LENGTH} 个字符`);
       }
 
+      if (typeof settings.home.showIntroLead !== 'boolean') {
+        errors.push('首页导语主文案展示开关必须是布尔值');
+      }
+
       if (!settings.home.introMore) {
         errors.push('首页导语补充文案不能为空');
       } else if (settings.home.introMore.length > ADMIN_HOME_INTRO_MAX_LENGTH) {
         errors.push(`首页导语补充文案不能超过 ${ADMIN_HOME_INTRO_MAX_LENGTH} 个字符`);
       }
 
-      const pageSubtitleMap: Array<[string, string | null, string]> = [
-        ['essay', settings.page.essay?.subtitle, '随笔副标题'],
-        ['archive', settings.page.archive?.subtitle, '归档副标题'],
-        ['bits', settings.page.bits?.subtitle, '絮语副标题'],
-        ['memo', settings.page.memo?.subtitle, '小记副标题'],
-        ['about', settings.page.about?.subtitle, '关于页副标题']
+      if (typeof settings.home.showIntroMore !== 'boolean') {
+        errors.push('首页导语补充文案展示开关必须是布尔值');
+      }
+
+      if (!Array.isArray(settings.home.introMoreLinks)) {
+        errors.push('首页导语补充链接必须是数组');
+      } else if (
+        settings.home.introMoreLinks.length < 1 ||
+        settings.home.introMoreLinks.length > ADMIN_HOME_INTRO_LINK_LIMIT
+      ) {
+        errors.push(`首页导语补充链接必须选择 1-${ADMIN_HOME_INTRO_LINK_LIMIT} 个入口`);
+      } else {
+        const seenHomeIntroLinks = new Set<HomeIntroLinkKey>();
+        settings.home.introMoreLinks.forEach((linkKey, index) => {
+          if (!isAdminHomeIntroLinkKey(linkKey)) {
+            errors.push(`首页导语补充链接 #${index + 1} 非法：${String(linkKey)}`);
+            return;
+          }
+          if (seenHomeIntroLinks.has(linkKey)) {
+            errors.push(`首页导语补充链接不能重复：${linkKey}`);
+            return;
+          }
+          seenHomeIntroLinks.add(linkKey);
+        });
+      }
+
+      const pageTitleMap: Array<[string | null, string]> = [
+        [settings.page.essay?.title, '/essay/ 页面主标题'],
+        [settings.page.archive?.title, '/archive/ 页面主标题'],
+        [settings.page.bits?.title, '/bits/ 页面主标题'],
+        [settings.page.memo?.title, '/memo/ 页面主标题'],
+        [settings.page.about?.title, '/about/ 页面主标题']
       ];
 
-      pageSubtitleMap.forEach(([, subtitle, label]) => {
+      pageTitleMap.forEach(([title, label]) => {
+        if (title == null) return;
+        if (typeof title !== 'string') {
+          errors.push(`${label} 必须是字符串或留空`);
+          return;
+        }
+        if (title.includes('\n') || title.includes('\r')) {
+          errors.push(`${label} 只允许单行文本`);
+        }
+        if (title.length > ADMIN_PAGE_TITLE_MAX_LENGTH) {
+          errors.push(`${label} 不能超过 ${ADMIN_PAGE_TITLE_MAX_LENGTH} 个字符`);
+        }
+      });
+
+      const pageSubtitleMap: Array<[string | null, string]> = [
+        [settings.page.essay?.subtitle, '/essay/ 页面副标题'],
+        [settings.page.archive?.subtitle, '/archive/ 页面副标题'],
+        [settings.page.bits?.subtitle, '/bits/ 页面副标题'],
+        [settings.page.memo?.subtitle, '/memo/ 页面副标题'],
+        [settings.page.about?.subtitle, '/about/ 页面副标题']
+      ];
+
+      pageSubtitleMap.forEach(([subtitle, label]) => {
         if (subtitle == null) return;
         if (typeof subtitle !== 'string') {
           errors.push(`${label} 必须是字符串或留空`);
@@ -1054,6 +1249,20 @@ if (!root) {
     inputSiteFooterStartYear.addEventListener('input', refreshFooterPreview);
     inputSiteFooterShowCurrentYear.addEventListener('change', refreshFooterPreview);
     inputSiteFooterCopyright.addEventListener('input', refreshFooterPreview);
+    inputHomeIntroMore.addEventListener('input', refreshHomeIntroPreview);
+    inputHomeShowIntroMore.addEventListener('change', refreshHomeIntroPreview);
+    inputHomeIntroMoreLinkPrimary.addEventListener('change', () => {
+      syncHomeIntroLinkControls();
+      refreshDirty();
+    });
+    inputHomeIntroMoreLinkSecondaryEnabled.addEventListener('change', () => {
+      syncHomeIntroLinkControls();
+      refreshDirty();
+    });
+    inputHomeIntroMoreLinkSecondary.addEventListener('change', () => {
+      syncHomeIntroLinkControls();
+      refreshDirty();
+    });
 
     socialCustomAddBtn.addEventListener('click', () => {
       if (getCustomRows().length >= ADMIN_SOCIAL_CUSTOM_LIMIT) {

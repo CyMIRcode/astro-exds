@@ -4,6 +4,7 @@ import Icon from '../../components/Icon.astro';
 import { getThemeSettings, type SiteSocialIconKey } from '../../lib/theme-settings';
 const { settings } = getThemeSettings();
 const resolvedSocialItems = settings.site.socialLinks.resolvedSocialItems.filter((item) => item.visible);
+const aboutTitle = settings.page.about.title || '关于';
 const aboutSubtitle = settings.page.about.subtitle;
 
 type SocialActionItem = {
@@ -51,10 +52,10 @@ const contactItems: ContactItem[] = [
 ];
 ---
 
-<BaseLayout title="关于" bodyClass="about-page">
+<BaseLayout title={aboutTitle} bodyClass="about-page">
   <div class="page-header page-header--about">
     <div class="page-heading">
-      <h1 class="page-title">关于</h1>
+      <h1 class="page-title">{aboutTitle}</h1>
       {aboutSubtitle ? <span class="page-subtitle">{aboutSubtitle}</span> : null}
     </div>
     {

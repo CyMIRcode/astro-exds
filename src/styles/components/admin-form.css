@@ -217,9 +217,10 @@
 }
 
 .admin-grid {
+  --admin-grid-column-gap: 18px;
   display: grid;
   row-gap: 10px;
-  column-gap: 18px;
+  column-gap: var(--admin-grid-column-gap);
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -232,6 +233,11 @@
   grid-column: 1 / -1;
 }
 
+.admin-field--memo > input,
+.admin-field--memo > .admin-title-pair {
+  max-width: calc((100% - var(--admin-grid-column-gap)) / 2);
+}
+
 .admin-label {
   display: flex;
   flex-wrap: wrap;
@@ -241,15 +247,53 @@
   line-height: 1.5;
 }
 
+.admin-label--split {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.admin-label__copy {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+}
+
 .admin-label__main {
   color: var(--muted);
   font-weight: 600;
+}
+
+.admin-label__pipe {
+  color: var(--faint);
+  font-weight: 400;
 }
 
 .admin-label__hint {
   color: var(--faint);
   font-weight: 400;
   font-family: "LXGW WenKai Lite", "Kaiti SC", "STKaiti", serif;
+}
+
+.admin-label__toggle {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 20px;
+  color: var(--muted);
+  font-weight: 400;
+  font-family: "LXGW WenKai Lite", "Kaiti SC", "STKaiti", serif;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.admin-label__toggle input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
 }
 
 .admin-help {
@@ -263,6 +307,10 @@
   color: var(--muted);
   font-size: 13px;
   line-height: 1.7;
+}
+
+.admin-help__preview-value {
+  font-family: "LXGW WenKai Lite", "Kaiti SC", "STKaiti", serif;
 }
 
 .admin-year-range {
@@ -345,12 +393,85 @@
   min-height: 74px;
 }
 
+.admin-field input:disabled,
+.admin-field textarea:disabled,
+.admin-field select:disabled {
+  border-style: dashed;
+  background: var(--panel);
+  color: var(--faint);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 .admin-field input:focus-visible,
 .admin-field textarea:focus-visible,
 .admin-field select:focus-visible {
   outline: 2px solid var(--muted);
   outline-offset: 1px;
   box-shadow: 0 0 0 3px var(--panel);
+}
+
+.admin-label__main code {
+  font-size: 12px;
+}
+
+.admin-title-pair {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg);
+  overflow: hidden;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.admin-title-pair:hover {
+  border-color: var(--faint);
+}
+
+.admin-title-pair:focus-within {
+  outline: 2px solid var(--muted);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 3px var(--panel);
+}
+
+.admin-title-pair__input {
+  min-width: 0;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.admin-title-pair__input:focus-visible {
+  outline: 0 !important;
+}
+
+.admin-title-pair__input--title {
+  flex: 3 1 0;
+  text-align: center;
+}
+
+.admin-title-pair__input--subtitle {
+  flex: 7 1 0;
+  text-align: left;
+}
+
+.admin-title-pair__sep {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  color: var(--faint);
+  font-size: 13px;
+  line-height: 1;
+  font-family: "LXGW WenKai Lite", "Kaiti SC", "STKaiti", serif;
 }
 
 .admin-subgroup {
@@ -384,6 +505,54 @@
 
 .admin-subtitle--compact {
   margin-bottom: 0;
+}
+
+.admin-inline-builder {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.admin-inline-builder__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: calc(1.4em + 18px) !important;
+  resize: none !important;
+}
+
+.admin-inline-builder__select {
+  flex: 0 0 92px;
+  width: 92px !important;
+  min-width: 92px;
+  padding-left: 0;
+  padding-right: 0;
+  text-align: center;
+  text-align-last: center;
+}
+
+.admin-inline-builder__select option {
+  text-align: center;
+}
+
+.admin-inline-builder__bridge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 20px;
+  padding: 0;
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.admin-inline-builder__bridge input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
 }
 
 .admin-toggle {

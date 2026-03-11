@@ -1,9 +1,17 @@
 ---
 interface Props {
+  pageTitleMaxLength: number;
   pageSubtitleMaxLength: number;
+  memoTitlePlaceholder?: string;
+  memoSubtitlePlaceholder?: string;
 }
 
-const { pageSubtitleMaxLength } = Astro.props;
+const {
+  pageTitleMaxLength,
+  pageSubtitleMaxLength,
+  memoTitlePlaceholder = '',
+  memoSubtitlePlaceholder = ''
+} = Astro.props;
 ---
 
 <fieldset class="admin-group">
@@ -15,37 +23,145 @@ const { pageSubtitleMaxLength } = Astro.props;
   <div class="admin-grid">
     <label class="admin-field">
       <span class="admin-label">
-        <span class="admin-label__main">随笔副标题</span>
+        <span class="admin-label__main">
+          <code>/essay/</code> 页面主 <span class="admin-label__pipe" aria-hidden="true">|</span> 副标题
+        </span>
         <span class="admin-label__hint">（动态计数 / RSS 固定输出）</span>
       </span>
-      <input id="page-essay-subtitle" type="text" maxlength={pageSubtitleMaxLength} autocomplete="off" />
+      <span class="admin-title-pair" role="group" aria-label="/essay/ 页面主标题与副标题">
+        <input
+          id="page-essay-title"
+          class="admin-title-pair__input admin-title-pair__input--title"
+          type="text"
+          maxlength={pageTitleMaxLength}
+          autocomplete="off"
+          placeholder="随笔"
+          aria-label="/essay/ 页面主标题"
+        />
+        <span class="admin-title-pair__sep" aria-hidden="true">|</span>
+        <input
+          id="page-essay-subtitle"
+          class="admin-title-pair__input admin-title-pair__input--subtitle"
+          type="text"
+          maxlength={pageSubtitleMaxLength}
+          autocomplete="off"
+          placeholder="随笔与杂记"
+          aria-label="/essay/ 页面副标题"
+        />
+      </span>
     </label>
     <label class="admin-field">
       <span class="admin-label">
-        <span class="admin-label__main">归档副标题</span>
+        <span class="admin-label__main">
+          <code>/bits/</code> 页面主 <span class="admin-label__pipe" aria-hidden="true">|</span> 副标题
+        </span>
+      </span>
+      <span class="admin-title-pair" role="group" aria-label="/bits/ 页面主标题与副标题">
+        <input
+          id="page-bits-title"
+          class="admin-title-pair__input admin-title-pair__input--title"
+          type="text"
+          maxlength={pageTitleMaxLength}
+          autocomplete="off"
+          placeholder="絮语"
+          aria-label="/bits/ 页面主标题"
+        />
+        <span class="admin-title-pair__sep" aria-hidden="true">|</span>
+        <input
+          id="page-bits-subtitle"
+          class="admin-title-pair__input admin-title-pair__input--subtitle"
+          type="text"
+          maxlength={pageSubtitleMaxLength}
+          autocomplete="off"
+          placeholder="生活不只是长篇"
+          aria-label="/bits/ 页面副标题"
+        />
+      </span>
+    </label>
+    <label class="admin-field admin-field--full admin-field--memo">
+      <span class="admin-label">
+        <span class="admin-label__main">
+          <code>/memo/</code> 页面主 <span class="admin-label__pipe" aria-hidden="true">|</span> 副标题
+        </span>
+        <span class="admin-label__hint">（填写后覆盖对应字段，留空则沿用 src/content/memo/index.md）</span>
+      </span>
+      <span class="admin-title-pair" role="group" aria-label="/memo/ 页面主标题与副标题">
+        <input
+          id="page-memo-title"
+          class="admin-title-pair__input admin-title-pair__input--title"
+          type="text"
+          maxlength={pageTitleMaxLength}
+          autocomplete="off"
+          placeholder={memoTitlePlaceholder || undefined}
+          aria-label="/memo/ 页面主标题"
+        />
+        <span class="admin-title-pair__sep" aria-hidden="true">|</span>
+        <input
+          id="page-memo-subtitle"
+          class="admin-title-pair__input admin-title-pair__input--subtitle"
+          type="text"
+          maxlength={pageSubtitleMaxLength}
+          autocomplete="off"
+          placeholder={memoSubtitlePlaceholder || undefined}
+          aria-label="/memo/ 页面副标题"
+        />
+      </span>
+    </label>
+    <label class="admin-field">
+      <span class="admin-label">
+        <span class="admin-label__main">
+          <code>/archive/</code> 页面主 <span class="admin-label__pipe" aria-hidden="true">|</span> 副标题
+        </span>
         <span class="admin-label__hint">（动态计数 / RSS 固定输出）</span>
       </span>
-      <input id="page-archive-subtitle" type="text" maxlength={pageSubtitleMaxLength} autocomplete="off" />
+      <span class="admin-title-pair" role="group" aria-label="/archive/ 页面主标题与副标题">
+        <input
+          id="page-archive-title"
+          class="admin-title-pair__input admin-title-pair__input--title"
+          type="text"
+          maxlength={pageTitleMaxLength}
+          autocomplete="off"
+          placeholder="归档"
+          aria-label="/archive/ 页面主标题"
+        />
+        <span class="admin-title-pair__sep" aria-hidden="true">|</span>
+        <input
+          id="page-archive-subtitle"
+          class="admin-title-pair__input admin-title-pair__input--subtitle"
+          type="text"
+          maxlength={pageSubtitleMaxLength}
+          autocomplete="off"
+          placeholder="按年份分组的归档目录"
+          aria-label="/archive/ 页面副标题"
+        />
+      </span>
     </label>
     <label class="admin-field">
       <span class="admin-label">
-        <span class="admin-label__main">絮语副标题</span>
+        <span class="admin-label__main">
+          <code>/about/</code> 页面主 <span class="admin-label__pipe" aria-hidden="true">|</span> 副标题
+        </span>
       </span>
-      <input id="page-bits-subtitle" type="text" maxlength={pageSubtitleMaxLength} autocomplete="off" />
-    </label>
-    <label class="admin-field">
-      <span class="admin-label">
-        <span class="admin-label__main">小记副标题</span>
-        <span class="admin-label__hint">（留空则回退 memo frontmatter）</span>
+      <span class="admin-title-pair" role="group" aria-label="/about/ 页面主标题与副标题">
+        <input
+          id="page-about-title"
+          class="admin-title-pair__input admin-title-pair__input--title"
+          type="text"
+          maxlength={pageTitleMaxLength}
+          autocomplete="off"
+          placeholder="关于"
+          aria-label="/about/ 页面主标题"
+        />
+        <span class="admin-title-pair__sep" aria-hidden="true">|</span>
+        <input
+          id="page-about-subtitle"
+          class="admin-title-pair__input admin-title-pair__input--subtitle"
+          type="text"
+          maxlength={pageSubtitleMaxLength}
+          autocomplete="off"
+          aria-label="/about/ 页面副标题"
+        />
       </span>
-      <input id="page-memo-subtitle" type="text" maxlength={pageSubtitleMaxLength} autocomplete="off" />
-    </label>
-    <label class="admin-field">
-      <span class="admin-label">
-        <span class="admin-label__main">关于页副标题</span>
-        <span class="admin-label__hint">（可留空）</span>
-      </span>
-      <input id="page-about-subtitle" type="text" maxlength={pageSubtitleMaxLength} autocomplete="off" />
     </label>
   </div>
 

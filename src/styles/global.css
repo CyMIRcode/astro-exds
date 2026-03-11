@@ -313,6 +313,14 @@ hr {
   white-space: pre-line;
 }
 
+.intro__link-tail {
+  white-space: nowrap;
+}
+
+.intro__tail-punct {
+  margin-left: 0.12em;
+}
+
 .intro--serif {
   font-family: "Noto Serif SC", ui-serif, Georgia, "Times New Roman", "Songti SC", serif;
 }
@@ -330,6 +338,10 @@ hr {
 .section-title--index {
   margin-left: 14px;
   margin-top: 4px;
+}
+
+.home--no-intro .section-title--index {
+  margin-top: 24px;
 }
 
 .about-page .intro + .section-title {
@@ -748,6 +760,10 @@ hr {
     margin: 16px 0 22px;
   }
 
+  .home--no-intro .section-title--index {
+    margin-top: 18px;
+  }
+
   .site-guide {
     grid-template-columns: 1fr;
     gap: 16px;
@@ -792,6 +808,10 @@ hr {
 
   .intro {
     margin: 12px 0 18px;
+  }
+
+  .home--no-intro .section-title--index {
+    margin-top: 16px;
   }
 
   .hero {

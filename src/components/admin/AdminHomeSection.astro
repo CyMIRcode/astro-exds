@@ -1,4 +1,9 @@
 ---
+import {
+  ADMIN_HOME_INTRO_LINK_DEFAULT,
+  ADMIN_HOME_INTRO_LINK_OPTIONS
+} from '../../lib/admin-console/shared';
+
 interface Props {
   homeIntroMaxLength: number;
 }
@@ -13,19 +18,73 @@ const { homeIntroMaxLength } = Astro.props;
     <span class="admin-group__legend-en">Home</span>
   </legend>
   <div class="admin-grid">
-    <label class="admin-field admin-field--full">
-      <span class="admin-label">
-        <span class="admin-label__main">首页导语主文案</span>
-      </span>
+    <div class="admin-field admin-field--full">
+      <div class="admin-label admin-label--split">
+        <span class="admin-label__copy">
+          <label class="admin-label__main" for="home-intro-lead">首页导语主文案</label>
+        </span>
+        <label class="admin-label__toggle" for="home-show-intro-lead">
+          <input id="home-show-intro-lead" type="checkbox" checked />
+          <span>展示</span>
+        </label>
+      </div>
       <textarea id="home-intro-lead" rows="3" maxlength={homeIntroMaxLength}></textarea>
-    </label>
-    <label class="admin-field admin-field--full">
-      <span class="admin-label">
-        <span class="admin-label__main">首页导语补充文案</span>
-        <span class="admin-label__hint">（后方固定附带归档 / 随笔链接）</span>
-      </span>
-      <textarea id="home-intro-more" rows="2" maxlength={homeIntroMaxLength}></textarea>
-    </label>
+    </div>
+    <div class="admin-field admin-field--full">
+      <div class="admin-label admin-label--split">
+        <span class="admin-label__copy">
+          <label class="admin-label__main" for="home-intro-more">首页导语补充文案</label>
+          <span class="admin-label__hint">（固定句式：补充文案 + 链接 + 可选“或” + 链接）</span>
+        </span>
+        <label class="admin-label__toggle" for="home-show-intro-more">
+          <input id="home-show-intro-more" type="checkbox" checked />
+          <span>展示</span>
+        </label>
+      </div>
+      <div class="admin-inline-builder admin-inline-builder--intro-more" role="group" aria-label="首页导语补充句式编辑器">
+        <textarea
+          id="home-intro-more"
+          class="admin-inline-builder__text"
+          rows="1"
+          maxlength={homeIntroMaxLength}
+          aria-label="首页导语补充文案"
+        ></textarea>
+        <select
+          id="home-intro-more-link-primary"
+          class="admin-inline-builder__select"
+          aria-label="首页导语补充主链接"
+        >
+          {ADMIN_HOME_INTRO_LINK_OPTIONS.map((option) => (
+            <option value={option.id} selected={option.id === ADMIN_HOME_INTRO_LINK_DEFAULT[0]}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <label class="admin-inline-builder__bridge" for="home-intro-more-link-secondary-enabled">
+          <input
+            id="home-intro-more-link-secondary-enabled"
+            type="checkbox"
+            checked
+            aria-controls="home-intro-more-link-secondary"
+          />
+          <span>或</span>
+        </label>
+        <select
+          id="home-intro-more-link-secondary"
+          class="admin-inline-builder__select"
+          aria-label="首页导语补充第二链接"
+        >
+          {ADMIN_HOME_INTRO_LINK_OPTIONS.map((option) => (
+            <option value={option.id} selected={option.id === ADMIN_HOME_INTRO_LINK_DEFAULT[1]}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <p class="admin-help">
+        补充导语预览：<code id="home-intro-more-preview" class="admin-help__preview-value">更多文章请访问 归档 或 随笔。</code>
+      </p>
+    </div>
     <label class="admin-field">
       <span class="admin-label">
         <span class="admin-label__main">Hero 预置</span>

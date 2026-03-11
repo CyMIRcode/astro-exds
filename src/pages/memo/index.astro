@@ -6,6 +6,7 @@ import { getEntry, render } from 'astro:content';
 import { getThemeSettings } from '../../lib/theme-settings';
 
 const prod = import.meta.env.PROD;
+const DEFAULT_MEMO_TITLE = '生活小记';
 const DEFAULT_MEMO_SUBTITLE = '整理一些值得留存的片刻与回忆。';
 
 const entry = await getEntry('memo', 'index');
@@ -22,6 +23,7 @@ const {
   }
 } = getThemeSettings();
 const { Content, headings } = await render(entry);
+const memoTitle = page.memo.title ?? entry.data.title ?? DEFAULT_MEMO_TITLE;
 const memoSubtitle = page.memo.subtitle ?? entry.data.subtitle ?? DEFAULT_MEMO_SUBTITLE;
 
 // Build a grouped TOC: H2 as section titles, H3 as items.
@@ -45,12 +47,12 @@ for (const h of headings) {
 ---
 
 <BaseLayout
-  title="生活小记"
+  title={memoTitle}
   description="整理一些值得留存的片刻与回忆。"
   bodyClass="memo-page immersive-page"
 >
   <div class="page-header reader-exit-anchor">
-    <h1 class="page-title">{entry.data.title}</h1>
+    <h1 class="page-title">{memoTitle}</h1>
     {memoSubtitle ? <span class="page-subtitle">{memoSubtitle}</span> : null}
     <button
       id="reader-exit"

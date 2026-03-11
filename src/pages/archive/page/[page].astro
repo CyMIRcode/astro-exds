@@ -38,7 +38,8 @@ const prevHref = currentPage === 2
   ? withBase('/archive/')
   : withBase(`/archive/page/${currentPage - 1}/`);
 const nextHref = currentPage < totalPages ? withBase(`/archive/page/${currentPage + 1}/`) : null;
-const pageTitle = `归档 · 第 ${currentPage} 页`;
+const pageTitleText = page.archive.title || '归档';
+const pageTitle = `${pageTitleText} · 第 ${currentPage} 页`;
 const subtitleText = joinPageSubtitleText(
   page.archive.subtitle,
   `共 ${archiveItems.length} 篇内容`,
@@ -49,7 +50,7 @@ const subtitleText = joinPageSubtitleText(
 <BaseLayout title={pageTitle}>
   <div class="page-header page-header--with-search">
     <div class="page-heading">
-      <h1 class="page-title">归档</h1>
+      <h1 class="page-title">{pageTitleText}</h1>
       <span class="page-subtitle">
         {subtitleText ? `${subtitleText} · ` : null}
         <a href={withBase('/archive/rss.xml')}>RSS</a>
@@ -68,14 +69,14 @@ const subtitleText = joinPageSubtitleText(
             type="search"
             placeholder="搜索：标题 / 摘要 / 标签"
             autocomplete="off"
-            aria-label="搜索归档"
+            aria-label={`搜索${pageTitleText}`}
           />
         </div>
         <button
           class="entry-search-toggle"
           data-entry-search-toggle
           type="button"
-          aria-label="搜索归档"
+          aria-label={`搜索${pageTitleText}`}
           title="搜索"
           aria-expanded="false"
         >
@@ -116,7 +117,7 @@ const subtitleText = joinPageSubtitleText(
   ))}
 
   {showPagination && (
-    <nav class="pagination" aria-label="归档分页">
+    <nav class="pagination" aria-label={`${pageTitleText}分页`}>
       <div class="pagination__inner">
         <a class="pagination__link" rel="prev" href={prevHref}>上一页</a>
         {nextHref ? (

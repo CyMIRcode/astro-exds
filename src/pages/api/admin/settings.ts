@@ -6,6 +6,7 @@ import {
   getThemeSettings,
   resetThemeSettingsCache,
   type HeroPresetId,
+  type HomeIntroLinkKey,
   type SidebarNavId,
   type SiteSocialCustomItem,
   type SiteSocialIconKey,
@@ -17,15 +18,19 @@ import {
   ADMIN_FOOTER_START_YEAR_MIN,
   ADMIN_GITHUB_HOSTS,
   ADMIN_HERO_PRESET_SET,
+  ADMIN_HOME_INTRO_LINK_KEYS,
+  ADMIN_HOME_INTRO_LINK_LIMIT,
   ADMIN_HOME_INTRO_MAX_LENGTH,
   ADMIN_LOCALE_RE,
   ADMIN_NAV_IDS,
   ADMIN_PAGE_IDS,
+  ADMIN_PAGE_TITLE_MAX_LENGTH,
   ADMIN_PAGE_SUBTITLE_MAX_LENGTH,
   ADMIN_SOCIAL_CUSTOM_LIMIT,
   ADMIN_SOCIAL_PRESET_IDS,
   ADMIN_X_HOSTS,
   getAdminFooterStartYearMax,
+  isAdminHomeIntroLinkKey,
   isAdminNavId,
   isAdminSocialIconKey
 } from '../../../lib/admin-console/shared';
@@ -71,7 +76,7 @@ const FOOTER_START_YEAR_MAX = getAdminFooterStartYearMax();
 
 const SITE_KEYS = ['title', 'description', 'defaultLocale', 'footer', 'socialLinks'] as const;
 const SHELL_KEYS = ['brandTitle', 'quote', 'nav'] as const;
-const HOME_KEYS = ['introLead', 'introMore', 'heroPresetId'] as const;
+const HOME_KEYS = ['introLead', 'introMore', 'introMoreLinks', 'showIntroLead', 'showIntroMore', 'heroPresetId'] as const;
 const PAGE_KEYS = ['essay', 'archive', 'bits', 'memo', 'about'] as const;
 const UI_KEYS = ['codeBlock', 'readingMode'] as const;
 const FOOTER_KEYS = ['startYear', 'showCurrentYear', 'copyright'] as const;
@@ -80,8 +85,9 @@ const SOCIAL_CUSTOM_ITEM_KEYS = ['id', 'label', 'href', 'iconKey', 'visible', 'o
 const CODE_BLOCK_KEYS = ['showLineNumbers'] as const;
 const READING_MODE_KEYS = ['showEntry'] as const;
 const NAV_ITEM_KEYS = ['id', 'label', 'visible', 'order'] as const;
-const PAGE_ITEM_KEYS = ['subtitle'] as const;
-const BITS_PAGE_KEYS = ['subtitle', 'defaultAuthor'] as const;
+const PAGE_HEADING_KEYS = ['title', 'subtitle'] as const;
+const MEMO_PAGE_KEYS = ['title', 'subtitle'] as const;
+const BITS_PAGE_KEYS = ['title', 'subtitle', 'defaultAuthor'] as const;
 const DEFAULT_AUTHOR_KEYS = ['name', 'avatar'] as const;
 
 const JSON_HEADERS = {
@@ -277,6 +283,43 @@ const parseSocialCustomItem = (
   };
 };
 
+const parseHomeIntroLinks = (value: unknown, errors: string[]): HomeIntroLinkKey[] | null => {
+  if (!Array.isArray(value)) {
+    errors.push('home.introMoreLinks 必须是数组');
+    return null;
+  }
+
+  if (value.length < 1 || value.length > ADMIN_HOME_INTRO_LINK_LIMIT) {
+    errors.push(`home.introMoreLinks 必须包含 1-${ADMIN_HOME_INTRO_LINK_LIMIT} 个链接`);
+  }
+
+  const normalized: HomeIntroLinkKey[] = [];
+  const seen = new Set<HomeIntroLinkKey>();
+
+  value.forEach((item, index) => {
+    const rawValue = toTrimmedString(item);
+    if (!rawValue || !isAdminHomeIntroLinkKey(rawValue)) {
+      errors.push(`home.introMoreLinks[${index}] 只允许 ${ADMIN_HOME_INTRO_LINK_KEYS.join(' / ')}`);
+      return;
+    }
+
+    const linkKey = rawValue as HomeIntroLinkKey;
+    if (seen.has(linkKey)) {
+      errors.push(`home.introMoreLinks 不允许重复值：${linkKey}`);
+      return;
+    }
+
+    seen.add(linkKey);
+    normalized.push(linkKey);
+  });
+
+  if (normalized.length < 1 || normalized.length > ADMIN_HOME_INTRO_LINK_LIMIT) {
+    return null;
+  }
+
+  return normalized;
+};
+
 const toWritableSiteSettings = (site: ThemeSettings['site']) => ({
   title: site.title,
   description: site.description,
@@ -322,6 +365,35 @@ const parseNavItem = (value: unknown, errors: string[], index: number): NavInput
   }
 
   return { id, label, visible, order };
+};
+
+const applyTitle = (
+  scope: string,
+  input: Record<string, unknown>,
+  target: { title: string | null },
+  errors: string[]
+): void => {
+  if (!Object.prototype.hasOwnProperty.call(input, 'title')) {
+    return;
+  }
+
+  const title = toNullableTrimmedString(input.title);
+  if (title === undefined) {
+    errors.push(`${scope}.title 必须是字符串、null 或留空`);
+    return;
+  }
+  if (typeof title === 'string') {
+    if (title.includes('\n') || title.includes('\r')) {
+      errors.push(`${scope}.title 只允许单行文本`);
+      return;
+    }
+    if (title.length > ADMIN_PAGE_TITLE_MAX_LENGTH) {
+      errors.push(`${scope}.title 不能超过 ${ADMIN_PAGE_TITLE_MAX_LENGTH} 个字符`);
+      return;
+    }
+  }
+
+  target.title = title;
 };
 
 const applySubtitle = (
@@ -616,7 +688,10 @@ const parsePatch = (
       errors.push('home 必须是对象');
     } else {
       collectUnknownKeys('home', rawHome, HOME_KEYS, errors);
-      const nextHome = { ...current.home };
+      const nextHome = {
+        ...current.home,
+        introMoreLinks: [...current.home.introMoreLinks]
+      };
 
       if (Object.prototype.hasOwnProperty.call(rawHome, 'introLead')) {
         const value = toTrimmedString(rawHome.introLead);
@@ -637,6 +712,31 @@ const parsePatch = (
           errors.push(`home.introMore 不能超过 ${ADMIN_HOME_INTRO_MAX_LENGTH} 个字符`);
         } else {
           nextHome.introMore = value;
+        }
+      }
+
+      if (Object.prototype.hasOwnProperty.call(rawHome, 'introMoreLinks')) {
+        const value = parseHomeIntroLinks(rawHome.introMoreLinks, errors);
+        if (value) {
+          nextHome.introMoreLinks = value;
+        }
+      }
+
+      if (Object.prototype.hasOwnProperty.call(rawHome, 'showIntroLead')) {
+        const value = toBoolean(rawHome.showIntroLead);
+        if (value === undefined) {
+          errors.push('home.showIntroLead 必须是布尔值');
+        } else {
+          nextHome.showIntroLead = value;
+        }
+      }
+
+      if (Object.prototype.hasOwnProperty.call(rawHome, 'showIntroMore')) {
+        const value = toBoolean(rawHome.showIntroMore);
+        if (value === undefined) {
+          errors.push('home.showIntroMore 必须是布尔值');
+        } else {
+          nextHome.showIntroMore = value;
         }
       }
 
@@ -681,6 +781,7 @@ const parsePatch = (
 
         if (pageId === 'bits') {
           collectUnknownKeys(`page.${pageId}`, rawItem, BITS_PAGE_KEYS, errors);
+          applyTitle(`page.${pageId}`, rawItem, nextPage.bits, errors);
           applySubtitle(`page.${pageId}`, rawItem, nextPage.bits, errors);
 
           if (Object.prototype.hasOwnProperty.call(rawItem, 'defaultAuthor')) {
@@ -711,7 +812,15 @@ const parsePatch = (
           continue;
         }
 
-        collectUnknownKeys(`page.${pageId}`, rawItem, PAGE_ITEM_KEYS, errors);
+        if (pageId === 'memo') {
+          collectUnknownKeys(`page.${pageId}`, rawItem, MEMO_PAGE_KEYS, errors);
+          applyTitle(`page.${pageId}`, rawItem, nextPage.memo, errors);
+          applySubtitle(`page.${pageId}`, rawItem, nextPage.memo, errors);
+          continue;
+        }
+
+        collectUnknownKeys(`page.${pageId}`, rawItem, PAGE_HEADING_KEYS, errors);
+        applyTitle(`page.${pageId}`, rawItem, nextPage[pageId], errors);
         applySubtitle(`page.${pageId}`, rawItem, nextPage[pageId], errors);
       }
 

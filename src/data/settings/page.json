@@ -1,11 +1,14 @@
 {
   "essay": {
+    "title": "随笔",
     "subtitle": "随笔与杂记"
   },
   "archive": {
+    "title": "归档",
     "subtitle": "按年份分组的归档目录"
   },
   "bits": {
+    "title": "絮语",
     "subtitle": "生活不只是长篇",
     "defaultAuthor": {
       "name": "Whono",
@@ -13,9 +16,11 @@
     }
   },
   "memo": {
+    "title": null,
     "subtitle": null
   },
   "about": {
+    "title": "关于",
     "subtitle": null
   }
 }
