@@ -1,7 +1,6 @@
 ---
 import EssayPageView from '../../../components/EssayPageView.astro';
 import { buildPaginatedPaths, getPageSlice, getTotalPages, getVisibleEssays } from '../../../lib/content';
-import { collectTagSummary } from '../../../lib/tags';
 import { PAGE_SIZE_ESSAY } from '../../../../site.config.mjs';
 
 export const prerender = true;
@@ -14,7 +13,6 @@ export async function getStaticPaths() {
 
 const currentPage = Number(Astro.params.page);
 const visibleEssays = await getVisibleEssays();
-const tagSummaries = collectTagSummary(visibleEssays);
 const totalPages = getTotalPages(visibleEssays.length, PAGE_SIZE_ESSAY);
 const pageEssays = getPageSlice(visibleEssays, currentPage, PAGE_SIZE_ESSAY);
 ---
@@ -24,8 +22,6 @@ const pageEssays = getPageSlice(visibleEssays, currentPage, PAGE_SIZE_ESSAY);
   resultCount={visibleEssays.length}
   currentPage={currentPage}
   totalPages={totalPages}
-  currentPath={`/essay/page/${currentPage}/`}
   prevPath={currentPage === 2 ? '/essay/' : `/essay/page/${currentPage - 1}/`}
   nextPath={currentPage < totalPages ? `/essay/page/${currentPage + 1}/` : null}
-  tagSummaries={tagSummaries}
 />

@@ -1,6 +1,6 @@
 ---
 import { render } from 'astro:content';
-import { getPublished, isReservedSlug } from '../../lib/content';
+import { getEssaySlug, getVisibleEssayRouteEntries } from '../../lib/content';
 import ArticleLayout from '../../layouts/ArticleLayout.astro';
 import { createWithBase } from '../../utils/format';
 
@@ -9,22 +9,17 @@ export const prerender = true;
 export async function getStaticPaths() {
   const base = import.meta.env.BASE_URL ?? '/';
   const withBase = createWithBase(base);
-  const essays = await getPublished('essay', {
-    orderBy: (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
-  });
-  const archiveEssays = essays.filter((entry) => !isReservedSlug(entry.data.slug ?? entry.id));
-  return archiveEssays.map((entry, index) => {
-    const prevEntry = archiveEssays.at(index - 1);
-    const nextEntry = archiveEssays.at(index + 1);
+  const routeEntries = await getVisibleEssayRouteEntries();
+  return routeEntries.map(({ slug, entry, prev, next }) => {
     return {
-      params: { slug: entry.data.slug ?? entry.id },
+      params: { slug },
       props: {
         entry,
-        prev: prevEntry
-          ? { href: withBase(`/archive/${prevEntry.data.slug ?? prevEntry.id}/`), title: prevEntry.data.title }
+        prev: prev
+          ? { href: withBase(`/archive/${getEssaySlug(prev)}/`), title: prev.data.title }
           : null,
-        next: nextEntry
-          ? { href: withBase(`/archive/${nextEntry.data.slug ?? nextEntry.id}/`), title: nextEntry.data.title }
+        next: next
+          ? { href: withBase(`/archive/${getEssaySlug(next)}/`), title: next.data.title }
           : null
       }
     };

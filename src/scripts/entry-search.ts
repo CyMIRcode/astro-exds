@@ -17,6 +17,8 @@ type PageItem = {
 
 const root = document.querySelector<HTMLElement>('[data-entry-filters]');
 const FILTER_DEBOUNCE_MS = 120;
+const getQueryTerms = (query: string) =>
+  Array.from(new Set(query.split(/\s+/).map((term) => term.trim().toLowerCase()).filter(Boolean)));
 
 if (!root) {
   // Current page does not use entry search / tags.
@@ -48,7 +50,7 @@ if (!root) {
   const sections = sectionSelector
     ? Array.from(document.querySelectorAll<HTMLElement>(sectionSelector))
     : [];
-  const tagScope: TagScope | null = tagScopeRaw === 'archive' || tagScopeRaw === 'essay' ? tagScopeRaw : null;
+  const tagScope: TagScope | null = tagScopeRaw === 'archive' ? 'archive' : null;
   const availableTagKeys = new Set(
     Array.from(root.querySelectorAll<HTMLElement>('[data-entry-tag-key]'))
       .map((el) => (el.dataset.entryTagKey ?? '').trim())
@@ -67,11 +69,19 @@ if (!root) {
   };
 
   const syncLegacyTagParam = () => {
-    if (!tagScope) return;
-
     const url = new URL(window.location.href);
     const rawTag = (url.searchParams.get('tag') ?? '').trim();
     if (!rawTag) return;
+
+    if (!tagScope) {
+      url.searchParams.delete('tag');
+      const fallback = `${url.pathname}${url.search}${url.hash}`;
+      const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      if (fallback !== current) {
+        window.history.replaceState({}, '', fallback);
+      }
+      return;
+    }
 
     const tagKey = toTagKey(rawTag);
     url.searchParams.delete('tag');
@@ -226,9 +236,10 @@ if (!root) {
     }
 
     const runId = ++filterRunId;
-    const query = (input?.value || '').trim().toLowerCase();
+    const rawQuery = (input?.value || '').trim();
+    const queryTerms = getQueryTerms(rawQuery);
 
-    if (!query) {
+    if (queryTerms.length === 0) {
       showAllItems();
       syncSections(false);
       setStatus('');
@@ -242,7 +253,7 @@ if (!root) {
     const matchedSlugs = new Set<string>();
     for (const item of index) {
       const hay = indexHay.get(item.slug) || '';
-      if (!hay.includes(query)) continue;
+      if (!queryTerms.every((term) => hay.includes(term))) continue;
 
       if (activeTagKey) {
         const normalizedTagKeys = indexTagKeys.get(item.slug) ?? [];
@@ -260,7 +271,7 @@ if (!root) {
     }
 
     syncSections(true);
-    updateStatusForMatches(query, matchedSlugs.size, visibleMatches);
+    updateStatusForMatches(rawQuery, matchedSlugs.size, visibleMatches);
   };
 
   const removePickerParam = () => {

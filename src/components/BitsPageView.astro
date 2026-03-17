@@ -4,10 +4,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import BitCard from './BitCard.astro';
 import Lightbox from './Lightbox.astro';
 import '../styles/bits-page.css';
-import { MAX_PRIMARY_BITS_FILTER_YEARS, type BitsEntry, type BitsYearOption } from '../lib/bits';
+import { MAX_PRIMARY_BITS_FILTER_YEARS, getBitsDerivedText, type BitsEntry, type BitsYearOption } from '../lib/bits';
 import { createWithBase } from '../utils/format';
 import { getThemeSettings } from '../lib/theme-settings';
-import { cleanMarkdownToText, getBitsExcerpt } from '../utils/excerpt';
 import { joinPageSubtitleText } from '../utils/format';
 
 const {
@@ -50,18 +49,17 @@ const pageDescription = joinPageSubtitleText(
   totalPages > 1 ? `第 ${currentPage} / ${totalPages} 页` : null
 ) ?? `${pageTitleText}列表`;
 
-const FULL_RENDER_LIMIT = 180;
 const primaryYearOptions = yearOptions.slice(0, MAX_PRIMARY_BITS_FILTER_YEARS);
 const overflowYearOptions = yearOptions.slice(MAX_PRIMARY_BITS_FILTER_YEARS);
 
 const cards = await Promise.all(
   items.map(async (bit) => {
-    const plain = cleanMarkdownToText(bit.body ?? '');
-    if (plain.length <= FULL_RENDER_LIMIT) {
+    const derivedText = getBitsDerivedText(bit);
+    if (derivedText.shouldRenderFull) {
       const { Content } = await render(bit);
       return { bit, excerpt: '', Content };
     }
-    return { bit, excerpt: getBitsExcerpt(bit), Content: null };
+    return { bit, excerpt: derivedText.excerpt, Content: null };
   })
 );
 ---

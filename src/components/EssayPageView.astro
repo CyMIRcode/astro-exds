@@ -3,30 +3,23 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import TagFilterHeader from './TagFilterHeader.astro';
 import EssayCard from './EssayCard.astro';
 import { createWithBase, getEssaySlug, type EssayEntry } from '../lib/content';
-import { getTagPath, type TagSummary } from '../lib/tags';
 import { getThemeSettings } from '../lib/theme-settings';
 import { getListExcerpt } from '../utils/excerpt';
 import { joinPageSubtitleText } from '../utils/format';
 
 const {
   currentPage,
-  currentPath,
-  currentTag = null,
   items,
   nextPath = null,
   prevPath = null,
   resultCount,
-  tagSummaries,
   totalPages
 } = Astro.props as {
   currentPage: number;
-  currentPath: string;
-  currentTag?: TagSummary | null;
   items: EssayEntry[];
   nextPath?: string | null;
   prevPath?: string | null;
   resultCount: number;
-  tagSummaries: TagSummary[];
   totalPages: number;
 };
 
@@ -39,8 +32,7 @@ const {
 } = getThemeSettings();
 
 const pageTitleText = page.essay.title || '随笔';
-const pageTitleParts = [pageTitleText, currentTag ? `#${currentTag.label}` : null, currentPage > 1 ? `第 ${currentPage} 页` : null]
-  .filter(Boolean);
+const pageTitleParts = [pageTitleText, currentPage > 1 ? `第 ${currentPage} 页` : null].filter(Boolean);
 const pageTitle = pageTitleParts.join(' · ');
 const subtitleText = joinPageSubtitleText(
   page.essay.subtitle,
@@ -48,24 +40,12 @@ const subtitleText = joinPageSubtitleText(
   totalPages > 1 ? `第 ${currentPage} / ${totalPages} 页` : null
 );
 const pageDescription = joinPageSubtitleText(
-  currentTag ? `随笔标签 #${currentTag.label}` : `${pageTitleText}列表`,
+  `${pageTitleText}列表`,
   page.essay.subtitle,
   `共 ${resultCount} 篇`,
   totalPages > 1 ? `第 ${currentPage} / ${totalPages} 页` : null
 ) ?? `${pageTitleText}列表`;
-const scopeRootPath = '/essay/';
 const fallbackListId = 'essay-tag-list';
-const tagOptions = tagSummaries.map((tagSummary) => ({
-  ...tagSummary,
-  href: withBase(currentTag?.key === tagSummary.key ? currentPath : getTagPath('essay', tagSummary.key)),
-  isActive: currentTag?.key === tagSummary.key
-}));
-const currentTagState = currentTag
-  ? {
-      clearHref: withBase(scopeRootPath),
-      label: currentTag.label
-    }
-  : null;
 ---
 
 <BaseLayout title={pageTitle} description={pageDescription} bodyClass="essay-page">
@@ -73,9 +53,6 @@ const currentTagState = currentTag
     class="entry-filters"
     data-entry-filters
     data-index-url="/essay/index.json"
-    data-tag-scope="essay"
-    data-active-tag-key={currentTag?.key ?? undefined}
-    data-active-tag-label={currentTag?.label ?? undefined}
   >
     <TagFilterHeader
       pageTitleText={pageTitleText}
@@ -84,8 +61,6 @@ const currentTagState = currentTag
       pickerHref={`#${fallbackListId}`}
       fallbackListId={fallbackListId}
       dialogTitleId="essay-tag-dialog-title"
-      currentTag={currentTagState}
-      tagOptions={tagOptions}
       searchAriaLabel={`搜索${pageTitleText}`}
       headerClass="page-header page-header--essay page-header--with-search"
     />
@@ -99,7 +74,7 @@ const currentTagState = currentTag
         title={entry.data.title}
         excerpt={getListExcerpt(entry)}
         date={entry.data.date}
-        tag={currentTag?.label ?? entry.data.tags?.[0]}
+        tag={entry.data.tags?.[0]}
         badge={entry.data.badge}
       />
     ))}

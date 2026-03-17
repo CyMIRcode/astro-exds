@@ -10,7 +10,7 @@ export type TagSummary = {
   count: number;
 };
 
-export type TagScope = 'archive' | 'essay';
+export type TagScope = 'archive';
 
 const SPACE_RE = /\s+/g;
 const TAG_KEY_RE = /[\s/\\?#%]+/g;

@@ -1,11 +1,9 @@
 ---
 import EssayPageView from '../../components/EssayPageView.astro';
 import { getPageSlice, getTotalPages, getVisibleEssays } from '../../lib/content';
-import { collectTagSummary } from '../../lib/tags';
 import { PAGE_SIZE_ESSAY } from '../../../site.config.mjs';
 
 const visibleEssays = await getVisibleEssays();
-const tagSummaries = collectTagSummary(visibleEssays);
 const totalPages = getTotalPages(visibleEssays.length, PAGE_SIZE_ESSAY);
 const currentPage = 1;
 const pageEssays = getPageSlice(visibleEssays, currentPage, PAGE_SIZE_ESSAY);
@@ -16,8 +14,6 @@ const pageEssays = getPageSlice(visibleEssays, currentPage, PAGE_SIZE_ESSAY);
   resultCount={visibleEssays.length}
   currentPage={currentPage}
   totalPages={totalPages}
-  currentPath="/essay/"
   prevPath={null}
   nextPath={currentPage < totalPages ? `/essay/page/${currentPage + 1}/` : null}
-  tagSummaries={tagSummaries}
 />

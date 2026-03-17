@@ -7,7 +7,7 @@ import {
   ADMIN_HOME_INTRO_LINK_DEFAULT,
   getAdminHomeIntroLinkOption
 } from '../lib/admin-console/shared';
-import { getPublished, isReservedSlug } from '../lib/content';
+import { getVisibleEssays } from '../lib/content';
 import { getThemeSettings } from '../lib/theme-settings';
 import { getListExcerpt } from '../utils/excerpt';
 import { createWithBase } from '../utils/format';
@@ -33,12 +33,7 @@ const resolvedIntroMoreLinks = (introMoreLinks.length ? introMoreLinks : [...ADM
   (linkKey) => getAdminHomeIntroLinkOption(linkKey)
 );
 
-const essays = await getPublished('essay', {
-  orderBy: (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
-});
-
-const visibleEssays = essays.filter((entry) => !isReservedSlug(entry.data.slug ?? entry.id));
-const latest = visibleEssays.slice(0, 12);
+const latest = (await getVisibleEssays()).slice(0, 12);
 
 type HomeHeadCriticalFontFace = {
   family: 'LXGW WenKai Lite' | 'Noto Serif SC';

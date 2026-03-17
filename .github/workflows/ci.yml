@@ -66,18 +66,15 @@ jobs:
           test -f dist/index.html
           test -f dist/about/index.html
           test -f dist/bits/index.html
-          test -f dist/archive/markdown-guide/index.html
 
           grep -q "Sitemap: ${SITE_URL}/sitemap-index.xml" dist/robots.txt
           grep -q "<loc>${SITE_URL}/about/</loc>" dist/sitemap-0.xml
           grep -q "<link rel=\"canonical\" href=\"${SITE_URL}/about/\"" dist/about/index.html
           grep -q "<meta property=\"og:url\" content=\"${SITE_URL}/about/\"" dist/about/index.html
-          grep -q "<link>${SITE_URL}/archive/markdown-guide/</link>" dist/rss.xml
-          grep -q "<link>${SITE_URL}/archive/markdown-guide/</link>" dist/archive/rss.xml
-          grep -q "<link>${SITE_URL}/archive/markdown-guide/</link>" dist/essay/rss.xml
 
           node --input-type=module <<'EOF'
           import { existsSync, readFileSync } from 'node:fs';
+          import path from 'node:path';
 
           const expect = (condition, message) => {
             if (!condition) {
@@ -138,6 +135,74 @@ jobs:
             existsSync(avatarFilePath),
             `Bits default author avatar points to a missing file: ${avatarFilePath}`
           );
+
+          const getRssItemLinks = (xml) =>
+            Array.from(xml.matchAll(/<item>[\s\S]*?<link>([^<]+)<\/link>/g), (match) => match[1].trim()).filter(Boolean);
+
+          const normalizeArchiveDetailPath = (href) => {
+            const url = new URL(href);
+            const normalizedPath = url.pathname.replace(/\/+$/, '').replace(/^\/+/, '');
+            expect(
+              normalizedPath.startsWith('archive/') && normalizedPath.split('/').length >= 2,
+              `Archive RSS item did not resolve to an /archive/{slug}/ detail page: ${href}`
+            );
+            return path.join('dist', normalizedPath, 'index.html');
+          };
+
+          const defaultRssXml = readFileSync('dist/rss.xml', 'utf8');
+          const archiveRssXml = readFileSync('dist/archive/rss.xml', 'utf8');
+          const essayRssXml = readFileSync('dist/essay/rss.xml', 'utf8');
+          const sitemapXml = readFileSync('dist/sitemap-0.xml', 'utf8');
+
+          const defaultRssLinks = getRssItemLinks(defaultRssXml);
+          const archiveRssLinks = getRssItemLinks(archiveRssXml);
+          const essayRssLinks = getRssItemLinks(essayRssXml);
+
+          expect(archiveRssLinks.length > 0, 'Archive RSS does not contain any item links');
+          expect(defaultRssLinks.length > 0, 'Default RSS does not contain any item links');
+          expect(essayRssLinks.length > 0, 'Essay RSS does not contain any item links');
+
+          const sampleArchiveLink = archiveRssLinks[0];
+          expect(
+            sampleArchiveLink.startsWith(`${process.env.SITE_URL}/archive/`),
+            `Archive RSS item link is not absolute or not under /archive/: ${sampleArchiveLink}`
+          );
+          expect(
+            defaultRssLinks.includes(sampleArchiveLink),
+            `Default RSS is missing archive item link: ${sampleArchiveLink}`
+          );
+          expect(
+            essayRssLinks.includes(sampleArchiveLink),
+            `Essay RSS is missing archive item link: ${sampleArchiveLink}`
+          );
+          expect(
+            sitemapXml.includes(`<loc>${sampleArchiveLink}</loc>`),
+            `Sitemap is missing archive detail link: ${sampleArchiveLink}`
+          );
+
+          const sampleArchiveHtmlPath = normalizeArchiveDetailPath(sampleArchiveLink);
+          expect(
+            existsSync(sampleArchiveHtmlPath),
+            `Archive RSS sample detail page is missing: ${sampleArchiveHtmlPath}`
+          );
+
+          const sampleArchiveHtml = readFileSync(sampleArchiveHtmlPath, 'utf8');
+          expect(
+            sampleArchiveHtml.includes(`<link rel="canonical" href="${sampleArchiveLink}"`),
+            `Archive detail page canonical does not match RSS item link: ${sampleArchiveLink}`
+          );
+          expect(
+            sampleArchiveHtml.includes(`<meta property="og:url" content="${sampleArchiveLink}"`),
+            `Archive detail page og:url does not match RSS item link: ${sampleArchiveLink}`
+          );
+          expect(
+            !/\.admin-/.test(sampleArchiveHtml),
+            `Archive detail page still contains admin CSS rules: ${sampleArchiveHtmlPath}`
+          );
+          expect(
+            !/--admin-status-/.test(sampleArchiveHtml),
+            `Archive detail page still contains admin CSS tokens: ${sampleArchiveHtmlPath}`
+          );
           EOF
 
           if grep -q "/admin/" dist/sitemap-0.xml; then
@@ -152,15 +217,5 @@ jobs:
 
           if grep -q -- "--admin-status-" dist/about/index.html; then
             echo "Public about page still contains admin CSS tokens"
-            exit 1
-          fi
-
-          if grep -q "\\.admin-" dist/archive/markdown-guide/index.html; then
-            echo "Archive detail page still contains admin CSS rules"
-            exit 1
-          fi
-
-          if grep -q -- "--admin-status-" dist/archive/markdown-guide/index.html; then
-            echo "Archive detail page still contains admin CSS tokens"
             exit 1
           fi

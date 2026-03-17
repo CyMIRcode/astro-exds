@@ -1,15 +1,11 @@
 ---
-import { getPublished, isReservedSlug } from '../../lib/content';
+import { getVisibleEssayRouteEntries } from '../../lib/content';
 
 export const prerender = true;
 
 export async function getStaticPaths() {
-  const essays = await getPublished('essay', {
-    orderBy: (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
-  });
-  const visibleEssays = essays.filter((entry) => !isReservedSlug(entry.data.slug ?? entry.id));
-  return visibleEssays.map((entry) => {
-    const slug = entry.data.slug ?? entry.id;
+  const routeEntries = await getVisibleEssayRouteEntries();
+  return routeEntries.map(({ slug }) => {
     return {
       params: { slug },
       props: { slug }

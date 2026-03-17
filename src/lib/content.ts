@@ -43,8 +43,43 @@ export async function getPublished<K extends CollectionKey>(
 }
 
 export type EssayEntry = CollectionEntry<'essay'>;
+type EssayQueryOptions = Pick<GetPublishedOptions<'essay'>, 'includeDraft'>;
+export type EssayRouteEntry = {
+  slug: string;
+  entry: EssayEntry;
+  prev: EssayEntry | null;
+  next: EssayEntry | null;
+};
 
 export const getEssaySlug = (entry: EssayEntry) => entry.data.slug ?? entry.id;
+
+const assertUniqueEssaySlugs = (entries: readonly EssayEntry[]) => {
+  const seen = new Map<string, string>();
+  const duplicates = new Map<string, string[]>();
+
+  for (const entry of entries) {
+    const slug = getEssaySlug(entry);
+    if (isReservedSlug(slug)) continue;
+
+    const firstEntryId = seen.get(slug);
+    if (!firstEntryId) {
+      seen.set(slug, entry.id);
+      continue;
+    }
+
+    const duplicateIds = duplicates.get(slug) ?? [firstEntryId];
+    duplicateIds.push(entry.id);
+    duplicates.set(slug, duplicateIds);
+  }
+
+  if (duplicates.size === 0) return;
+
+  const detail = Array.from(duplicates.entries())
+    .map(([slug, entryIds]) => `"${slug}" <- ${entryIds.join(', ')}`)
+    .join('; ');
+
+  throw new Error(`Duplicate essay slug detected. Public essay slugs must be unique. ${detail}`);
+};
 
 const orderByEssayDate = (a: EssayEntry, b: EssayEntry) => b.data.date.valueOf() - a.data.date.valueOf();
 const shouldMemoizeEssayQueries = import.meta.env.PROD;
@@ -55,23 +90,30 @@ let archiveEssaysPromise: Promise<EssayEntry[]> | null = null;
 
 const cloneEssayEntries = (entries: readonly EssayEntry[]) => entries.slice();
 
-const loadSortedEssays = () =>
-  getPublished('essay', {
+const shouldUseDefaultEssayCache = (includeDraft?: boolean) =>
+  shouldMemoizeEssayQueries && includeDraft !== true;
+
+const loadSortedEssays = async ({ includeDraft }: EssayQueryOptions = {}) => {
+  const essays = await getPublished('essay', {
+    ...(includeDraft === undefined ? {} : { includeDraft }),
     orderBy: orderByEssayDate
   });
+  assertUniqueEssaySlugs(essays);
+  return essays;
+};
 
-export async function getSortedEssays() {
-  if (!shouldMemoizeEssayQueries) {
-    return loadSortedEssays();
+export async function getSortedEssays(options: EssayQueryOptions = {}) {
+  if (!shouldUseDefaultEssayCache(options.includeDraft)) {
+    return loadSortedEssays(options);
   }
 
   sortedEssaysPromise ??= loadSortedEssays();
   return cloneEssayEntries(await sortedEssaysPromise);
 }
 
-export async function getVisibleEssays() {
-  if (!shouldMemoizeEssayQueries) {
-    const essays = await getSortedEssays();
+export async function getVisibleEssays(options: EssayQueryOptions = {}) {
+  if (!shouldUseDefaultEssayCache(options.includeDraft)) {
+    const essays = await getSortedEssays(options);
     return essays.filter((entry) => !isReservedSlug(getEssaySlug(entry)));
   }
 
@@ -81,9 +123,9 @@ export async function getVisibleEssays() {
   return cloneEssayEntries(await visibleEssaysPromise);
 }
 
-export async function getArchiveEssays() {
-  if (!shouldMemoizeEssayQueries) {
-    const essays = await getSortedEssays();
+export async function getArchiveEssays(options: EssayQueryOptions = {}) {
+  if (!shouldUseDefaultEssayCache(options.includeDraft)) {
+    const essays = await getSortedEssays(options);
     return essays.filter((entry) => entry.data.archive !== false && !isReservedSlug(getEssaySlug(entry)));
   }
 
@@ -91,4 +133,14 @@ export async function getArchiveEssays() {
     essays.filter((entry) => entry.data.archive !== false && !isReservedSlug(getEssaySlug(entry)))
   );
   return cloneEssayEntries(await archiveEssaysPromise);
+}
+
+export async function getVisibleEssayRouteEntries(options: EssayQueryOptions = {}) {
+  const essays = await getVisibleEssays(options);
+  return essays.map((entry, index) => ({
+    slug: getEssaySlug(entry),
+    entry,
+    prev: essays.at(index - 1) ?? null,
+    next: essays.at(index + 1) ?? null
+  })) satisfies EssayRouteEntry[];
 }

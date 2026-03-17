@@ -1,7 +1,7 @@
 import type { CollectionEntry } from 'astro:content';
 import { getPublished, getPageSlice, getTotalPages } from './content';
 import { createWithBase, formatDateTime } from '../utils/format';
-import { cleanMarkdownToText, getBitsExcerpt } from '../utils/excerpt';
+import { deriveMarkdownText, truncateText } from '../utils/excerpt';
 
 export type BitsEntry = CollectionEntry<'bits'>;
 export type BitsYearOption = {
@@ -30,7 +30,15 @@ export type BitsIndexItem = {
   } | null;
 };
 
+export type BitsDerivedText = {
+  plainText: string;
+  text: string;
+  excerpt: string;
+  shouldRenderFull: boolean;
+};
+
 const MAX_INDEX_TEXT = 600;
+const FULL_RENDER_LIMIT = 180;
 export const MAX_PRIMARY_BITS_FILTER_YEARS = 2;
 const orderByBitsDate = (a: BitsEntry, b: BitsEntry) => b.data.date.valueOf() - a.data.date.valueOf();
 const shouldMemoizeBitQueries = import.meta.env.PROD;
@@ -39,6 +47,7 @@ const withBase = createWithBase(base);
 
 let sortedBitsPromise: Promise<BitsEntry[]> | null = null;
 const bitsIndexPromiseByPageSize = new Map<number, Promise<BitsIndexItem[]>>();
+const bitsDerivedTextById = new Map<string, BitsDerivedText>();
 
 const cloneBitEntries = (entries: readonly BitsEntry[]) => entries.slice();
 
@@ -91,11 +100,38 @@ export async function getBitsPageData(currentPage: number, pageSize: number) {
   };
 }
 
+const getSearchIndexText = (plainText: string) =>
+  plainText.length > MAX_INDEX_TEXT ? plainText.slice(0, MAX_INDEX_TEXT) : plainText;
+
+const buildBitsDerivedText = (bit: BitsEntry): BitsDerivedText => {
+  const { plainText, excerptText } = deriveMarkdownText(bit.body ?? '');
+
+  return {
+    plainText,
+    text: getSearchIndexText(plainText),
+    excerpt: truncateText(excerptText, FULL_RENDER_LIMIT),
+    shouldRenderFull: plainText.length <= FULL_RENDER_LIMIT
+  };
+};
+
+export function getBitsDerivedText(bit: BitsEntry): BitsDerivedText {
+  if (!shouldMemoizeBitQueries) {
+    return buildBitsDerivedText(bit);
+  }
+
+  let derivedText = bitsDerivedTextById.get(bit.id);
+  if (!derivedText) {
+    derivedText = buildBitsDerivedText(bit);
+    bitsDerivedTextById.set(bit.id, derivedText);
+  }
+
+  return derivedText;
+}
+
 const buildBitsIndex = async (pageSize: number) => {
   const bits = await getSortedBits();
   return bits.map((bit, index) => {
-    const plain = cleanMarkdownToText(bit.body ?? '');
-    const text = plain.length > MAX_INDEX_TEXT ? plain.slice(0, MAX_INDEX_TEXT) : plain;
+    const derivedText = getBitsDerivedText(bit);
     const page = Math.floor(index / pageSize) + 1;
     const firstImage = bit.data.images?.[0];
 
@@ -105,8 +141,8 @@ const buildBitsIndex = async (pageSize: number) => {
       title: bit.data.title ?? '',
       description: bit.data.description ?? '',
       tags: bit.data.tags ?? [],
-      text,
-      excerpt: getBitsExcerpt(bit),
+      text: derivedText.text,
+      excerpt: derivedText.excerpt,
       date: bit.data.date ? bit.data.date.toISOString() : null,
       dateLabel: bit.data.date ? formatDateTime(bit.data.date) : null,
       year: bit.data.date ? bit.data.date.getFullYear() : null,
