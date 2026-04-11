@@ -1,0 +1,8 @@
+name = "astro-yaran"
+main = "./dist/_worker.js"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# 如果你还需要日志里提到的 KV 和 Images 功能，可以加上这两行（具体的名称请参考你实际的绑定配置）
+# [vars]
+# KV_BINDING_NAME = "SESSION"
