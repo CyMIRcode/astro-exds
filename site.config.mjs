@@ -11,7 +11,7 @@ if (!hasSiteUrl && process.env.NODE_ENV === 'production') {
 
 export const site = {
   url: hasSiteUrl ? siteUrl : fallbackSiteUrl,
-  title: 'Explore Dreams Daringly and Successfully.',
+  title: 'EXDS',
   brandTitle: 'EXDS',
   author: 'EXDS',
   authorAvatar: 'author/avatar.webp',
