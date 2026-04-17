@@ -340,7 +340,7 @@ const THEME_SETTINGS_INVALID_MESSAGE =
   '检测到 settings JSON 配置文件损坏，Theme Console 已停止读取并禁止保存，请先修复对应文件后再重试';
 
 const LEGACY_INTRO_LEAD =
-  '这是一个开源写作主题与示例内容库:包含 随笔/essay、小记/memo、归档/archive 与 絮语/bits，使用与配置请见 README 。';
+  'Explore Dreams Daringly and Successfully.';
 const LEGACY_INTRO_MORE = '更多文章请访问';
 const LEGACY_ESSAY_TITLE = '随笔';
 const LEGACY_ARCHIVE_TITLE = '归档';
